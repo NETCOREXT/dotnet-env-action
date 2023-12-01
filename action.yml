@@ -113,6 +113,6 @@ runs:
         echo "tag-hash=$COMMIT_SHORT_SHA" >> $GITHUB_OUTPUT
         echo "tag-latest=$TAG_LATEST" >> $GITHUB_OUTPUT
         echo "build-options=$ADDITIONAL_ARGUMENTS" >> $GITHUB_OUTPUT
-        echo "branch=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+        echo "branch=$BRANCH" >> $GITHUB_OUTPUT
         echo "actor=$USERNAME" >> $GITHUB_OUTPUT
         echo "email=$EMAIL" >> $GITHUB_OUTPUT
