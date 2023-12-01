@@ -89,7 +89,7 @@ runs:
 
         PROJECT_PATH=`find . -type f -iname "${APP}.csproj"`
 
-        dotnet build $PROJECT_PATH -o ./dist
+        BRANCH=$BRANCH dotnet build $PROJECT_PATH -o ./dist
 
         echo "asm-info ./dist/${APP}.dll --simple --version"
 
