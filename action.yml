@@ -41,7 +41,7 @@ outputs:
     value: ${{ steps.envs.outputs.tag-latest }}
   build-options:
     description: "Image build options"
-    value: ${{ steps.envs.outputs.build-options }}
+    value: ${{ steps.build-options.outputs.build-options }}
   branch:
     description: "Branch name"
     value: ${{ steps.envs.outputs.branch }}
@@ -66,30 +66,15 @@ runs:
     - name: Install dotnet tool
       shell: bash
       run: dotnet tool install -g --prerelease netcorext.tools.assemblyinfo
-    - name: Set Environments
-      id: envs
+    - name: Get App Version
+      id: asm
       shell: bash
       run: |
         APP="${{ inputs.app }}"
-        BRANCH=`echo "${GITHUB_REF_NAME,,}" | sed 's/\//-/g'`
-        IMAGE=`echo "${APP,,}" | sed 's/\./-/g'`
-        IMAGE_FULL_NAME=$IMAGE
-
-        if [ ! -z "${{ inputs.image-prefix }}" ]; then
-          IMAGE_FULL_NAME="${{ inputs.image-prefix }}/${IMAGE}"
-        fi
-
-        COMMIT_SHORT_SHA=`git rev-parse --short ${GITHUB_SHA}`
-        COMMIT_COUNT=`git rev-list --count HEAD`
-        COMMIT_TIME=`git show -s --format=%ct HEAD`
-        ADDITIONAL_ARGUMENTS="-c Debug --version-suffix ${BRANCH}.${COMMIT_TIME}+${COMMIT_SHORT_SHA}"
-        TAG_LATEST="${BRANCH}-latest"
-        USERNAME=`git log -n 1 --pretty=format:%an`
-        EMAIL=`git log -n 1 --pretty=format:%ae`
 
         PROJECT_PATH=`find . -type f -iname "${APP}.csproj"`
 
-        BRANCH=$BRANCH dotnet build $PROJECT_PATH -o ./dist
+        dotnet build $PROJECT_PATH -o ./dist
 
         echo "asm-info ./dist/${APP}.dll --simple --version"
 
@@ -97,22 +82,20 @@ runs:
 
         rm -rf ./dist
 
-        TAG="${ASSEMBLY_VERSION}-${BRANCH}.${COMMIT_TIME}"
-
+        echo "version=$ASSEMBLY_VERSION" >> $GITHUB_OUTPUT
+    - name: Set Environments
+      id: envs
+      uses: netcorext/base-info-action@dev
+      with:
+        app: ${{ env.app }}
+        version: ${{ steps.asm.outputs.version }}
+        image-prefix: ${{ inputs.image-prefix }}
+    - name: Set Build Options
+      id: build-options
+      shell: bash
+      run: |
+        ADDITIONAL_ARGUMENTS="-c Debug --version-suffix ${{ steps.envs.outputs.tag }}"
         if [ "$GITHUB_REF_NAME" = "${{ inputs.branch-production }}" ]; then
           ADDITIONAL_ARGUMENTS="-c Release"
-          TAG="${ASSEMBLY_VERSION}.${COMMIT_TIME}"
-          TAG_LATEST="latest"
         fi
-
-        echo "app=$APP" >> $GITHUB_OUTPUT
-        echo "version=$ASSEMBLY_VERSION" >> $GITHUB_OUTPUT
-        echo "image=$IMAGE" >> $GITHUB_OUTPUT
-        echo "image-fullName=$IMAGE_FULL_NAME" >> $GITHUB_OUTPUT
-        echo "tag=$TAG" >> $GITHUB_OUTPUT
-        echo "tag-hash=$COMMIT_SHORT_SHA" >> $GITHUB_OUTPUT
-        echo "tag-latest=$TAG_LATEST" >> $GITHUB_OUTPUT
         echo "build-options=$ADDITIONAL_ARGUMENTS" >> $GITHUB_OUTPUT
-        echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-        echo "actor=$USERNAME" >> $GITHUB_OUTPUT
-        echo "email=$EMAIL" >> $GITHUB_OUTPUT
