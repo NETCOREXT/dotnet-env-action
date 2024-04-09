@@ -87,7 +87,7 @@ runs:
       id: envs
       uses: netcorext/base-info-action@dev
       with:
-        app: ${{ env.app }}
+        app: ${{ inputs.app }}
         version: ${{ steps.asm.outputs.version }}
         image-prefix: ${{ inputs.image-prefix }}
     - name: Set Build Options
